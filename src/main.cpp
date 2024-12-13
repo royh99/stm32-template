@@ -111,7 +111,7 @@ extern "C" int main(void)
    extern const TERM_CMD termCmds[];
 
    clock_setup(); //Must always come first
-   rtc_setup();
+   //rtc_setup();
    ANA_IN_CONFIGURE(ANA_IN_LIST);
    DIG_IO_CONFIGURE(DIG_IO_LIST);
    AnaIn::Start(); //Starts background ADC conversion via DMA
@@ -127,13 +127,13 @@ extern "C" int main(void)
    Stm32Can c(CAN1, (CanHardware::baudrates)Param::GetInt(Param::canspeed));
    CanMap cm(&c);
    CanSdo sdo(&c, &cm);
-   sdo.SetNodeId(33); //Set node ID for SDO access e.g. by wifi module
+   sdo.SetNodeId(44); //Set node ID for SDO access e.g. by wifi module
    //store a pointer for easier access
    can = &c;
    canMap = &cm;
 
-   //This is all we need to do to set up a terminal on USART3
-   Terminal t(USART3, termCmds);
+   //This is all we need to do to set up a terminal on USART1
+   Terminal t(USART1, termCmds);
    TerminalCommands::SetCanMap(canMap);
 
    //Up to four tasks can be added to each timer scheduler

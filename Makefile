@@ -19,7 +19,7 @@
 
 OUT_DIR      = obj
 PREFIX		?= arm-none-eabi
-BINARY		= stm32_yourname
+BINARY		= stm32_F405
 SIZE        = $(PREFIX)-size
 CC		      = $(PREFIX)-gcc
 CPP	      = $(PREFIX)-g++
@@ -36,10 +36,10 @@ CPPFLAGS    = -Og -g3 -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3
 				-ffunction-sections -fdata-sections -fno-builtin -fno-rtti -fno-exceptions -fno-unwind-tables -mcpu=cortex-m3 -mthumb
 LDSCRIPT	  = linker.ld
 LDFLAGS    = -Llibopencm3/lib -T$(LDSCRIPT) -march=armv7 -nostartfiles -Wl,--gc-sections,-Map,linker.map
-OBJSL		  = main.o hwinit.o stm32scheduler.o params.o terminal.o terminal_prj.o \
-             my_string.o digio.o sine_core.o my_fp.o printf.o anain.o \
+OBJSL		  = main.o hwinit.o stm32scheduler.o params.o  \
+             my_string.o digio.o my_fp.o printf.o anain.o \
              param_save.o errormessage.o stm32_can.o canhardware.o canmap.o cansdo.o \
-             picontroller.o terminalcommands.o
+             terminal.o terminalcommands.o terminal_prj.o
 
 OBJS     = $(patsubst %.o,obj/%.o, $(OBJSL))
 DEPENDS  = $(patsubst %.o,obj/%.d, $(OBJSL))
@@ -49,8 +49,8 @@ vpath %.cpp src/ libopeninv/src
 OPENOCD_BASE	= /usr
 OPENOCD		= $(OPENOCD_BASE)/bin/openocd
 OPENOCD_SCRIPTS	= $(OPENOCD_BASE)/share/openocd/scripts
-OPENOCD_FLASHER	= $(OPENOCD_SCRIPTS)/interface/parport.cfg
-OPENOCD_BOARD	= $(OPENOCD_SCRIPTS)/board/olimex_stm32_h103.cfg
+OPENOCD_FLASHER	= $(OPENOCD_SCRIPTS)/interface/stlink-v2.cfg
+OPENOCD_TARGET	= $(OPENOCD_SCRIPTS)/target/stm32f4x.cfg
 
 # Be silent per default, but 'make V=1' will show all compiler calls.
 ifneq ($(V),1)
@@ -94,7 +94,7 @@ ${OUT_DIR}:
 
 $(BINARY): $(OBJS) $(LDSCRIPT)
 	@printf "  LD      $(subst $(shell pwd)/,,$(@))\n"
-	$(Q)$(LD) $(LDFLAGS) -o $(BINARY) $(OBJS) -lopencm3_stm32f1
+	$(Q)$(LD) $(LDFLAGS) -o $(BINARY) $(OBJS) -lopencm3_stm32f4
 
 -include $(DEPENDS)
 
@@ -125,7 +125,7 @@ flash: images
 	@# IMPORTANT: Don't use "resume", only "reset" will work correctly!
 	$(Q)$(OPENOCD) -s $(OPENOCD_SCRIPTS) \
 		       -f $(OPENOCD_FLASHER) \
-		       -f $(OPENOCD_BOARD) \
+		       -f $(OPENOCD_TARGET) \
 		       -c "init" -c "reset halt" \
 		       -c "flash write_image erase $(BINARY).hex" \
 		       -c "reset" \
@@ -137,7 +137,7 @@ get-deps:
 	@printf "  GIT SUBMODULE\n"
 	$(Q)git submodule update --init
 	@printf "  MAKE libopencm3\n"
-	$(Q)${MAKE} -C libopencm3 TARGETS=stm32/f1
+	$(Q)${MAKE} -C libopencm3 TARGETS=stm32/f4
 
 Test:
 	cd test && $(MAKE)

@@ -42,20 +42,19 @@ void clock_setup(void)
    RCC_CLOCK_SETUP();
 
    //The reset value for PRIGROUP (=0) is not actually a defined
-   //value. Explicitly set 16 preemtion priorities
+   //value. Explicitly set 16 pre-emption priorities
    SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_PRIGROUP_GROUP16_NOSUB;
 
    rcc_periph_clock_enable(RCC_GPIOA);
    rcc_periph_clock_enable(RCC_GPIOB);
    rcc_periph_clock_enable(RCC_GPIOC);
    rcc_periph_clock_enable(RCC_GPIOD);
-   rcc_periph_clock_enable(RCC_USART3);
+   rcc_periph_clock_enable(RCC_USART1);
    rcc_periph_clock_enable(RCC_TIM2); //Scheduler
    rcc_periph_clock_enable(RCC_TIM4); //Overcurrent / AUX PWM
-   rcc_periph_clock_enable(RCC_DMA1);  //ADC, Encoder and UART receive
+   rcc_periph_clock_enable(RCC_DMA1); //ADC, Encoder and UART receive
    rcc_periph_clock_enable(RCC_ADC1);
    rcc_periph_clock_enable(RCC_CRC);
-   rcc_periph_clock_enable(RCC_AFIO); //CAN
    rcc_periph_clock_enable(RCC_CAN1); //CAN
 }
 
@@ -158,6 +157,7 @@ void tim_setup()
    timer_enable_counter(OVER_CUR_TIMER);
 
    /** setup gpio */
-   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO7 | GPIO8 | GPIO9);
+   gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO7 | GPIO8 | GPIO9);
+   gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO1);
 }
 

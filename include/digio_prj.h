@@ -7,9 +7,14 @@
  * Inputs can be floating (INPUT_FLT), have a 30k pull-up (INPUT_PU)
  * or pull-down (INPUT_PD) or be an output (OUTPUT)
 */
-
-#define DIG_IO_LIST \
+// Nucleo-F405RG
+/* #define DIG_IO_LIST \
     DIG_IO_ENTRY(test_in,     GPIOB, GPIO5,  PinMode::INPUT_FLT)   \
-    DIG_IO_ENTRY(led_out,     GPIOC, GPIO12, PinMode::OUTPUT)      \
+    DIG_IO_ENTRY(led_out,     GPIOC, GPIO12, PinMode::OUTPUT)      \ */
+	
+// WeAct STM32F405RGT6
+#define DIG_IO_LIST \
+    DIG_IO_ENTRY(test_in,     GPIOC, GPIO13,  PinMode::INPUT_FLT)   \
+    DIG_IO_ENTRY(led_out,     GPIOB, GPIO2, PinMode::OUTPUT)      \
 
 #endif // PinMode_PRJ_H_INCLUDED
