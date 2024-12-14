@@ -3,5 +3,5 @@
 	url = https://github.com/jsphuebner/libopencm3
 [submodule "libopeninv"]
 	path = libopeninv
-	url = https://github.com/royh99/libopeninv.git
+	url = https://github.com/royh99/libopeninv
 	branch = stm32f4
