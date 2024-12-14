@@ -25,7 +25,7 @@
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/dma.h>
-#include <libopencm3/stm32/rtc.h>
+//#include <libopencm3/stm32/rtc.h>
 #include <libopencm3/stm32/crc.h>
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/stm32/desig.h>
@@ -51,8 +51,9 @@ void clock_setup(void)
    rcc_periph_clock_enable(RCC_GPIOD);
    rcc_periph_clock_enable(RCC_USART1);
    rcc_periph_clock_enable(RCC_TIM2); //Scheduler
-   rcc_periph_clock_enable(RCC_TIM4); //Overcurrent / AUX PWM
-   rcc_periph_clock_enable(RCC_DMA1); //ADC, Encoder and UART receive
+   rcc_periph_clock_enable(RCC_TIM3); //Overcurrent / AUX PWM
+   rcc_periph_clock_enable(RCC_DMA1); //UART receive
+   rcc_periph_clock_enable(RCC_DMA2); //ADC
    rcc_periph_clock_enable(RCC_ADC1);
    rcc_periph_clock_enable(RCC_CRC);
    rcc_periph_clock_enable(RCC_CAN1); //CAN
@@ -65,7 +66,7 @@ void clock_setup(void)
  */
 void write_bootloader_pininit()
 {
-   uint32_t flashSize = desig_get_flash_size();
+/*    uint32_t flashSize = desig_get_flash_size();
    uint32_t pindefAddr = FLASH_BASE + flashSize * 1024 - PINDEF_BLKNUM * PINDEF_BLKSIZE;
    const struct pincommands* flashCommands = (struct pincommands*)pindefAddr;
 
@@ -101,7 +102,7 @@ void write_bootloader_pininit()
          flash_program_word(pindefAddr + idx * sizeof(uint32_t), *pData);
       }
       flash_lock();
-   }
+   } */
 }
 
 /**
@@ -113,13 +114,13 @@ void nvic_setup(void)
    nvic_set_priority(NVIC_TIM2_IRQ, 0xe << 4); //second lowest priority
 }
 
-void rtc_setup()
+/* void rtc_setup()
 {
    //Base clock is HSE/128 = 8MHz/128 = 62.5kHz
    //62.5kHz / (624 + 1) = 100Hz
    rtc_auto_awake(RCC_HSE, 624); //10ms tick
    rtc_set_counter_val(0);
-}
+} */
 
 /**
 * Setup main PWM timer and timer for generating over current
@@ -157,7 +158,8 @@ void tim_setup()
    timer_enable_counter(OVER_CUR_TIMER);
 
    /** setup gpio */
-   gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO7 | GPIO8 | GPIO9);
-   gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO1);
+   gpio_set_af(GPIOA, GPIO_AF2, GPIO6 | GPIO7); // TIM3_CH1-4 PA6, PA7, PB0 ,PB1
+   gpio_set_af(GPIOB, GPIO_AF2, GPIO0 | GPIO1); // AF1 TIM1/2, AF2 TIM3/4/5
+
 }
 

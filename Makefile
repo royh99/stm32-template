@@ -17,32 +17,32 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-OUT_DIR      = obj
+OUT_DIR     = obj
 PREFIX		?= arm-none-eabi
 BINARY		= stm32_F405
 SIZE        = $(PREFIX)-size
-CC		      = $(PREFIX)-gcc
-CPP	      = $(PREFIX)-g++
-LD		      = $(PREFIX)-gcc
+CC		    = $(PREFIX)-gcc
+CPP	        = $(PREFIX)-g++
+LD		    = $(PREFIX)-gcc
 OBJCOPY		= $(PREFIX)-objcopy
 OBJDUMP		= $(PREFIX)-objdump
 MKDIR_P     = mkdir -p
 TERMINAL_DEBUG ?= 0
-CFLAGS		= -Os -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
-             -fno-common -fno-builtin -pedantic -DSTM32F1 -DT_DEBUG=$(TERMINAL_DEBUG) \
-				 -mcpu=cortex-m3 -mthumb -std=gnu99 -ffunction-sections -fdata-sections
-CPPFLAGS    = -Og -g3 -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
-            -fno-common -std=c++11 -pedantic -DSTM32F1 -DT_DEBUG=$(TERMINAL_DEBUG) \
-				-ffunction-sections -fdata-sections -fno-builtin -fno-rtti -fno-exceptions -fno-unwind-tables -mcpu=cortex-m3 -mthumb
+CFLAGS		= -Os -ggdb3 -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
+             -fno-common -fno-builtin -pedantic -DSTM32F4 -DT_DEBUG=$(TERMINAL_DEBUG) \
+				 -mcpu=cortex-m4 -mthumb  -mfloat-abi=hard -mfpu=fpv4-sp-d16 -std=gnu99 -ffunction-sections -fdata-sections 
+CPPFLAGS    = -Os -ggdb3 -Wall -Wextra -Iinclude/ -Ilibopeninv/include -Ilibopencm3/include \
+            -fno-common -std=c++17 -pedantic -DSTM32F4 -DT_DEBUG=$(TERMINAL_DEBUG) \
+				-ffunction-sections -fdata-sections -fno-builtin -fno-rtti -fno-exceptions -fno-unwind-tables -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDSCRIPT	  = linker.ld
-LDFLAGS    = -Llibopencm3/lib -T$(LDSCRIPT) -march=armv7 -nostartfiles -Wl,--gc-sections,-Map,linker.map
+LDFLAGS    = -Llibopencm3/lib -T$(LDSCRIPT) -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -nostartfiles -Wl,--gc-sections,-Map,linker.map -lc -lm
 OBJSL		  = main.o hwinit.o stm32scheduler.o params.o  \
              my_string.o digio.o my_fp.o printf.o anain.o \
              param_save.o errormessage.o stm32_can.o canhardware.o canmap.o cansdo.o \
              terminal.o terminalcommands.o terminal_prj.o
 
 OBJS     = $(patsubst %.o,obj/%.o, $(OBJSL))
-DEPENDS  = $(patsubst %.o,obj/%.d, $(OBJSL))
+OBJS     = $(patsubst %.o,$(OUT_DIR)/%.o, $(OBJSL))
 vpath %.c src/ libopeninv/src
 vpath %.cpp src/ libopeninv/src
 
@@ -80,7 +80,7 @@ all: directories images
 Debug:images
 Release: images
 cleanDebug:clean
-images: $(BINARY)
+images: get-deps $(BINARY)
 	@printf "  OBJCOPY $(BINARY).bin\n"
 	$(Q)$(OBJCOPY) -Obinary $(BINARY) $(BINARY).bin
 	@printf "  OBJCOPY $(BINARY).hex\n"
@@ -94,9 +94,8 @@ ${OUT_DIR}:
 
 $(BINARY): $(OBJS) $(LDSCRIPT)
 	@printf "  LD      $(subst $(shell pwd)/,,$(@))\n"
-	$(Q)$(LD) $(LDFLAGS) -o $(BINARY) $(OBJS) -lopencm3_stm32f4
+	$(Q)$(LD) $(LDFLAGS) -o $(BINARY) $(OBJS) -lopencm3_stm32f4 -lm -lc
 
--include $(DEPENDS)
 
 $(OUT_DIR)/%.o: %.c Makefile
 	@printf "  CC      $(subst $(shell pwd)/,,$(@))\n"
@@ -106,6 +105,8 @@ $(OUT_DIR)/%.o: %.cpp Makefile
 	@printf "  CPP     $(subst $(shell pwd)/,,$(@))\n"
 	$(Q)$(CPP) $(CPPFLAGS) -MMD -MP -o $@ -c $<
 
+DEP = $(OBJS:%.o=%.d)
+-include $(DEP)
 clean:
 	@printf "  CLEAN   ${OUT_DIR}\n"
 	$(Q)rm -rf ${OUT_DIR}
@@ -131,13 +132,15 @@ flash: images
 		       -c "reset" \
 		       -c "shutdown" $(NULL)
 
-.PHONY: directories images clean
+.PHONY: directories iget-deps images clean
 
 get-deps:
+ifneq ($(shell test -s libopencm3/lib/libopencm3_stm32f4.a && echo -n yes),yes)																			   
 	@printf "  GIT SUBMODULE\n"
 	$(Q)git submodule update --init
 	@printf "  MAKE libopencm3\n"
 	$(Q)${MAKE} -C libopencm3 TARGETS=stm32/f4
+endif										   
 
 Test:
 	cd test && $(MAKE)

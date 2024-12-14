@@ -71,7 +71,7 @@ static void Ms100Task(void)
 static void Ms10Task(void)
 {
    //Set timestamp of error message
-   ErrorMessage::SetTime(rtc_get_counter_val());
+   //ErrorMessage::SetTime(rtc_get_counter_val());
 
    if (DigIo::test_in.Get())
    {
@@ -115,7 +115,6 @@ extern "C" int main(void)
    ANA_IN_CONFIGURE(ANA_IN_LIST);
    DIG_IO_CONFIGURE(DIG_IO_LIST);
    AnaIn::Start(); //Starts background ADC conversion via DMA
-   write_bootloader_pininit(); //Instructs boot loader to initialize certain pins
 
    tim_setup(); //Sample init of a timer
    nvic_setup(); //Set up some interrupts
