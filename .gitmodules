@@ -1,6 +1,7 @@
-[submodule "libopencm3"]
-	path = libopencm3
-	url = https://github.com/jsphuebner/libopencm3
 [submodule "libopeninv"]
 	path = libopeninv
-	url = https://github.com/jsphuebner/libopeninv.git
+	url = git@github.com:royh99/libopeninv.git
+	branch = stm32g4
+[submodule "libopencm3"]
+	path = libopencm3
+	url = git@github.com:libopencm3/libopencm3.git
