@@ -25,15 +25,14 @@
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/dma.h>
-#include <libopencm3/stm32/rtc.h>
+#include <libopencm3/stm32/dmamux.h>									
+//#include <libopencm3/stm32/rtc.h>//
 #include <libopencm3/stm32/crc.h>
 #include <libopencm3/stm32/flash.h>
-#include <libopencm3/stm32/desig.h>
 #include "hwdefs.h"
 #include "hwinit.h"
 #include "stm32_loader.h"
-#include "my_string.h"
-
+#include "my_string.h"						 
 /**
 * Start clocks of all needed peripherals
 */
@@ -41,22 +40,20 @@ void clock_setup(void)
 {
    RCC_CLOCK_SETUP();
 
-   //The reset value for PRIGROUP (=0) is not actually a defined
-   //value. Explicitly set 16 preemtion priorities
-   SCB_AIRCR = SCB_AIRCR_VECTKEY | SCB_AIRCR_PRIGROUP_GROUP16_NOSUB;
-
    rcc_periph_clock_enable(RCC_GPIOA);
    rcc_periph_clock_enable(RCC_GPIOB);
    rcc_periph_clock_enable(RCC_GPIOC);
    rcc_periph_clock_enable(RCC_GPIOD);
+   rcc_periph_clock_enable(RCC_GPIOE);
    rcc_periph_clock_enable(RCC_USART3);
-   rcc_periph_clock_enable(RCC_TIM2); //Scheduler
-   rcc_periph_clock_enable(RCC_TIM4); //Overcurrent / AUX PWM
-   rcc_periph_clock_enable(RCC_DMA1);  //ADC, Encoder and UART receive
+   rcc_periph_clock_enable(RCC_TIM4); //Scheduler
+   rcc_periph_clock_enable(RCC_DMA1);  //ADC, and UARTS
+   // rcc_periph_clock_enable(RCC_DMA2);
+   rcc_periph_clock_enable(RCC_DMAMUX1);
    rcc_periph_clock_enable(RCC_ADC1);
    rcc_periph_clock_enable(RCC_CRC);
-   rcc_periph_clock_enable(RCC_AFIO); //CAN
-   rcc_periph_clock_enable(RCC_CAN1); //CAN
+   RCC_CCIPR |= RCC_CCIPR_FDCANSEL_PLLQ <<RCC_CCIPR_FDCANSEL_SHIFT; // select pllq clock for FDCAN
+   rcc_periph_clock_enable(RCC_FDCAN); //CAN1/CAN2/CAN3
 }
 
 /* Some pins should never be left floating at any time
@@ -66,7 +63,7 @@ void clock_setup(void)
  */
 void write_bootloader_pininit()
 {
-   uint32_t flashSize = desig_get_flash_size();
+/*    uint32_t flashSize = desig_get_flash_size();
    uint32_t pindefAddr = FLASH_BASE + flashSize * 1024 - PINDEF_BLKNUM * PINDEF_BLKSIZE;
    const struct pincommands* flashCommands = (struct pincommands*)pindefAddr;
 
@@ -78,13 +75,9 @@ void write_bootloader_pininit()
    //Here we specify that PC13 be initialized to ON
    //AND PB1 AND PB2 be initialized to OFF
    commands.pindef[0].port = GPIOC;
-   commands.pindef[0].pin = GPIO13;
+   commands.pindef[0].pin = GPIO8;
    commands.pindef[0].inout = PIN_OUT;
-   commands.pindef[0].level = 1;
-   commands.pindef[1].port = GPIOB;
-   commands.pindef[1].pin = GPIO1 | GPIO2;
-   commands.pindef[1].inout = PIN_OUT;
-   commands.pindef[1].level = 0;
+   commands.pindef[0].level = 0;
 
    crc_reset();
    uint32_t crc = crc_calculate_block(((uint32_t*)&commands), PINDEF_NUMWORDS);
@@ -102,7 +95,7 @@ void write_bootloader_pininit()
          flash_program_word(pindefAddr + idx * sizeof(uint32_t), *pData);
       }
       flash_lock();
-   }
+   } */
 }
 
 /**
@@ -110,16 +103,16 @@ void write_bootloader_pininit()
 */
 void nvic_setup(void)
 {
-   nvic_enable_irq(NVIC_TIM2_IRQ); //Scheduler
-   nvic_set_priority(NVIC_TIM2_IRQ, 0xe << 4); //second lowest priority
+   nvic_enable_irq(NVIC_TIM4_IRQ); //Scheduler
+   nvic_set_priority(NVIC_TIM4_IRQ, 0 ); // 0xe << 4); //second lowest priority
 }
 
 void rtc_setup()
 {
-   //Base clock is HSE/128 = 8MHz/128 = 62.5kHz
-   //62.5kHz / (624 + 1) = 100Hz
-   rtc_auto_awake(RCC_HSE, 624); //10ms tick
-   rtc_set_counter_val(0);
+   //Base clock is HSE/128 = 16MHz/128 = 125kHz
+   //1255kHz / (1249 + 1) = 100Hz
+/*    rtc_auto_awake(RCC_HSE, 1249); //10ms tick
+   rtc_set_counter_val(0); */
 }
 
 /**
@@ -128,36 +121,6 @@ void rtc_setup()
 */
 void tim_setup()
 {
-   /*** Setup over/undercurrent and PWM output timer */
-   timer_disable_counter(OVER_CUR_TIMER);
-   //edge aligned PWM
-   timer_set_alignment(OVER_CUR_TIMER, TIM_CR1_CMS_EDGE);
-   timer_enable_preload(OVER_CUR_TIMER);
-   /* PWM mode 1 and preload enable */
-   timer_set_oc_mode(OVER_CUR_TIMER, TIM_OC1, TIM_OCM_PWM1);
-   timer_set_oc_mode(OVER_CUR_TIMER, TIM_OC2, TIM_OCM_PWM1);
-   timer_set_oc_mode(OVER_CUR_TIMER, TIM_OC3, TIM_OCM_PWM1);
-   timer_set_oc_mode(OVER_CUR_TIMER, TIM_OC4, TIM_OCM_PWM1);
-   timer_enable_oc_preload(OVER_CUR_TIMER, TIM_OC1);
-   timer_enable_oc_preload(OVER_CUR_TIMER, TIM_OC2);
-   timer_enable_oc_preload(OVER_CUR_TIMER, TIM_OC3);
-   timer_enable_oc_preload(OVER_CUR_TIMER, TIM_OC4);
 
-   timer_set_oc_polarity_high(OVER_CUR_TIMER, TIM_OC1);
-   timer_set_oc_polarity_high(OVER_CUR_TIMER, TIM_OC2);
-   timer_set_oc_polarity_high(OVER_CUR_TIMER, TIM_OC3);
-   timer_set_oc_polarity_high(OVER_CUR_TIMER, TIM_OC4);
-   timer_enable_oc_output(OVER_CUR_TIMER, TIM_OC1);
-   timer_enable_oc_output(OVER_CUR_TIMER, TIM_OC2);
-   timer_enable_oc_output(OVER_CUR_TIMER, TIM_OC3);
-   timer_enable_oc_output(OVER_CUR_TIMER, TIM_OC4);
-   timer_generate_event(OVER_CUR_TIMER, TIM_EGR_UG);
-   timer_set_prescaler(OVER_CUR_TIMER, 0);
-   /* PWM frequency */
-   timer_set_period(OVER_CUR_TIMER, OCURMAX);
-   timer_enable_counter(OVER_CUR_TIMER);
-
-   /** setup gpio */
-   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO7 | GPIO8 | GPIO9);
 }
 
