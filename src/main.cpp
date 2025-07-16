@@ -128,7 +128,7 @@ extern "C" int main(void)
    ANA_IN_CONFIGURE(ANA_IN_LIST);
    DIG_IO_CONFIGURE(DIG_IO_LIST);
    AnaIn::Start(); //Starts background ADC conversion via DMA
-   write_bootloader_pininit(); //Instructs boot loader to initialize certain pins
+   //write_bootloader_pininit(); //Instructs boot loader to initialize certain pins
 
    tim_setup(); //Sample init of a timer
    nvic_setup(); //Set up some interrupts
